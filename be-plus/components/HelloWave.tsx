@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { StyleSheet } from 'react-native';
+import { Text, StyleSheet } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -8,15 +8,13 @@ import Animated, {
   withSequence,
 } from 'react-native-reanimated';
 
-import { ThemedText } from '@/components/ThemedText';
-
 export function HelloWave() {
   const rotationAnimation = useSharedValue(0);
 
   useEffect(() => {
     rotationAnimation.value = withRepeat(
-      withSequence(withTiming(25, { duration: 150 }), withTiming(0, { duration: 150 })),
-      4 // Run the animation 4 times
+        withSequence(withTiming(25, { duration: 150 }), withTiming(0, { duration: 150 })),
+        4 // Run the animation 4 times
     );
   }, []);
 
@@ -25,16 +23,17 @@ export function HelloWave() {
   }));
 
   return (
-    <Animated.View style={animatedStyle}>
-      <ThemedText style={styles.text}>👋</ThemedText>
-    </Animated.View>
+      <Animated.View style={animatedStyle}>
+        {/* Asegúrate de que el emoji esté envuelto en un componente Text */}
+        <Text style={styles.text}>👋</Text>
+      </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
   text: {
-    fontSize: 28,
-    lineHeight: 32,
-    marginTop: -6,
+    fontSize: 28, // Tamaño del emoji
+    lineHeight: 32, // Asegura que la línea del emoji esté centrada
+    marginTop: -6, // Ajuste de posición si es necesario
   },
 });

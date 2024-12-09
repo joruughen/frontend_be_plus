@@ -1,74 +1,70 @@
-import { Image, StyleSheet, Platform } from 'react-native';
-
+import React, { useEffect, useState } from 'react';
+import { Redirect } from 'expo-router';
+import {Image, View, Text, ActivityIndicator, Alert} from 'react-native';
+import * as SecureStore from 'expo-secure-store';
 import { HelloWave } from '@/components/HelloWave';
 import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12'
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          Tap the Explore tab to learn more about what's included in this starter app.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          When you're ready, run{' '}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
-  );
+    const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+    /*useEffect(() => {
+    const handleDeleteToken = async () => {
+        try {
+            await SecureStore.deleteItemAsync('authToken');
+            console.log('Auth token deleted from SecureStore');
+            Alert.alert('Success', 'Auth token has been deleted.');
+        } catch (error) {
+            console.error('Error deleting token from SecureStore:', error);
+            Alert.alert('Error', 'Failed to delete auth token.');
+        }
+    };
+    handleDeleteToken();
+    }, []);
+*/
+    useEffect(() => {
+        const checkAuthentication = async () => {
+            try {
+                const token = await SecureStore.getItemAsync('authToken');
+                setIsAuthenticated(!!token);
+            } catch (error) {
+                console.error('Authentication check failed:', error);
+                setIsAuthenticated(false);
+            }
+        };
+
+        checkAuthentication();
+    }, []);
+
+    // Return null until authentication state is determined
+    if (isAuthenticated === null) {
+        return null;
+    }
+
+    // If not authenticated, redirect to sign-in
+    if (!isAuthenticated) {
+        return <Redirect href="/sign-in" />;
+    }else{
+        // Render home screen only if authenticated
+        return <HomeContent />;
+    }
 }
 
-const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
-});
+// Separate component for home content
+function HomeContent() {
+    return (
+        <ParallaxScrollView
+            headerBackgroundColor="#A1CEDC"
+            headerImage={
+                <Image
+                    source={require('@/assets/images/partial-react-logo.png')}
+                    style={{ width: '100%', height: 250, resizeMode: 'contain' }}
+                />
+            }
+        >
+            <View style={{ padding: 16 }}>
+                <Text>Welcome! Sergio</Text>
+                <HelloWave />
+            </View>
+        </ParallaxScrollView>
+    );
+}

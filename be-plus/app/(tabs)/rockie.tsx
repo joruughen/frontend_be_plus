@@ -1,7 +1,16 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, Button, StyleSheet } from "react-native";
+import {
+    View,
+    Text,
+    TouchableOpacity,
+    StyleSheet,
+    Alert,
+    Image,
+} from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import * as SecureStore from "expo-secure-store";
+import Icon from "react-native-vector-icons/MaterialCommunityIcons";
+import Spinner from "react-native-loading-spinner-overlay";
 
 interface RockieData {
     experience?: number;
@@ -9,11 +18,7 @@ interface RockieData {
         evolution?: string;
         rockie_name?: string;
     };
-    rockie_name?: string;
     level?: number;
-    tenant_id?: string;
-    student_id?: string;
-    creation_date?: string;
 }
 
 export default function RockieScreen() {
@@ -27,6 +32,7 @@ export default function RockieScreen() {
 
     const fetchRockieData = async () => {
         setIsLoading(true);
+        setError(null);
 
         try {
             const token = await SecureStore.getItemAsync("authToken");
@@ -36,40 +42,30 @@ export default function RockieScreen() {
                 return;
             }
 
-            console.log("Token found:", token);
-
-            const response = await fetch("https://jmkaqyjkuk.execute-api.us-east-1.amazonaws.com/dev/rockie", {
-                method: "GET",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": token,
-                },
-            });
-
-            console.log("GET Response Status:", response.status);
+            const response = await fetch(
+                "https://jmkaqyjkuk.execute-api.us-east-1.amazonaws.com/dev/rockie",
+                {
+                    method: "GET",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: token,
+                    },
+                }
+            );
 
             const data = await response.json();
-            console.log("GET API Response:", data);
-
-            if (response.status === 200 && data.body && data.body.rockie_data) {
-                // Si el Rockie existe, lo mostramos
-                setRockieData(data.body);  // Actualiza el estado
-                setError(null); // Limpiar cualquier error
-            } else if (response.status === 404 || !data.body.rockie_data) {
-                // Si no se encuentra el Rockie, mostramos el mensaje
-                setRockieData(null);
-                setError("No Rockie found.");
+            if (response.status === 200 && data.body?.rockie_data) {
+                setRockieData(data.body);
             } else {
-                setError("Unexpected error: " + JSON.stringify(data.body));
+                setError(data.message || "No Rockie found.");
             }
         } catch (error) {
-            console.error("Unexpected error during GET request:", error);
+            console.error("Error fetching Rockie data:", error);
             setError("An unexpected error occurred.");
         } finally {
             setIsLoading(false);
         }
     };
-
 
     const createDefaultRockie = async () => {
         try {
@@ -79,171 +75,143 @@ export default function RockieScreen() {
                 return;
             }
 
-            console.log("Attempting to create default Rockie...");
-
-            const response = await fetch("https://jmkaqyjkuk.execute-api.us-east-1.amazonaws.com/dev/rockie", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": token,
-                },
-                body: JSON.stringify({
-                    rockie_name: "FireRockie2", // Nombre por defecto
-                }),
-            });
-
-            console.log("POST Response Status:", response.status);
+            const response = await fetch(
+                "https://jmkaqyjkuk.execute-api.us-east-1.amazonaws.com/dev/rockie",
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: token,
+                    },
+                    body: JSON.stringify({
+                        rockie_name: "FireRockie2",
+                    }),
+                }
+            );
 
             if (response.status === 200) {
                 const data = await response.json();
-                console.log("POST API Response (Rockie Created):", data);
-                setRockieData(data.body); // Actualiza los datos del Rockie
-                setError(null); // Limpiar error
+                setRockieData(data.body);
             } else {
-                const errorText = await response.text();
-                console.error("Error creating Rockie:", errorText);
                 setError("Failed to create Rockie.");
             }
         } catch (error) {
-            console.error("Unexpected error during POST request:", error);
+            console.error("Error creating Rockie:", error);
             setError("An unexpected error occurred.");
         }
     };
 
-    // If still loading, show the loading message
+    const CustomButton = ({ title, onPress }: { title: string; onPress: () => void }) => (
+        <TouchableOpacity style={styles.button} onPress={onPress}>
+            <Text style={styles.buttonText}>{title}</Text>
+        </TouchableOpacity>
+    );
+
     if (isLoading) {
         return (
-            <View style={styles.loadingContainer}>
-                <Text style={styles.loadingText}>Loading Rockie data...</Text>
-            </View>
+            <Spinner
+                visible={isLoading}
+                textContent="Loading Rockie data..."
+                textStyle={styles.loadingText}
+            />
         );
     }
-
-    // Debugging: print the current `rockieData`
-    console.log("Current Rockie Data:", rockieData);
 
     return (
         <LinearGradient colors={["#2A4955", "#528399"]} style={styles.gradient}>
             <View style={styles.scrollContainer}>
-                <View style={styles.infoContainer}>
+                <LinearGradient colors={["#3A5E73", "#2A4955"]} style={styles.infoContainer}>
                     <Text style={styles.header}>Rockie Profile</Text>
 
                     {error && (
                         <View style={styles.errorContainer}>
                             <Text style={styles.errorText}>{error}</Text>
+                            <CustomButton title="Dismiss" onPress={() => setError(null)} />
                         </View>
                     )}
 
-                    {/* Render Rockie data if available */}
                     {rockieData && rockieData.rockie_data ? (
                         <>
-                            <Text style={styles.label}>Name:</Text>
+                            <Text style={styles.label}>
+                                <Icon name="account-circle" size={20} color="#E9C76E" /> Name:
+                            </Text>
                             <Text style={styles.value}>
                                 {rockieData.rockie_data.rockie_name || "Not provided"}
                             </Text>
 
-                            <Text style={styles.label}>Level:</Text>
-                            <Text style={styles.value}>
-                                {rockieData.level ?? "Not provided"}
+                            <Text style={styles.label}>
+                                <Icon name="star" size={20} color="#E9C76E" /> Level:
                             </Text>
+                            <Text style={styles.value}>{rockieData.level ?? "Not provided"}</Text>
 
-                            <Text style={styles.label}>Experience:</Text>
-                            <Text style={styles.value}>
-                                {rockieData.experience ?? "Not provided"}
+                            <Text style={styles.label}>
+                                <Icon name="chart-line" size={20} color="#E9C76E" /> Experience:
                             </Text>
+                            <Text style={styles.value}>{rockieData.experience ?? "Not provided"}</Text>
 
-                            <Text style={styles.label}>Evolution:</Text>
-                            <Text style={styles.value}>
-                                {rockieData.rockie_data.evolution || "Not provided"}
+                            <Text style={styles.label}>
+                                <Icon name="leaf" size={20} color="#E9C76E" /> Evolution:
                             </Text>
-
-                            <Text style={styles.label}>Student ID:</Text>
-                            <Text style={styles.value}>
-                                {rockieData.student_id || "Not provided"}
-                            </Text>
-
-                            <Text style={styles.label}>Tenant ID:</Text>
-                            <Text style={styles.value}>
-                                {rockieData.tenant_id || "Not provided"}
-                            </Text>
-
-                            <Text style={styles.label}>Creation Date:</Text>
-                            <Text style={styles.value}>
-                                {rockieData.creation_date || "Not provided"}
-                            </Text>
+                            <Text style={styles.value}>{rockieData.rockie_data.evolution || "Not provided"}</Text>
                         </>
                     ) : (
                         <View style={styles.noRockieContainer}>
                             <Text style={styles.noRockieText}>No Rockie found.</Text>
-                            <Button title="Create Rockie" onPress={createDefaultRockie} />
+                            <CustomButton title="Create Rockie" onPress={createDefaultRockie} />
                         </View>
                     )}
+                </LinearGradient>
+
+                {/* Additional Section */}
+                <View style={styles.additionalContainer}>
+                    <Text style={styles.additionalHeader}>Meet Rockie!</Text>
+                    <Image
+                        source={require('@/assets/images/rocky_sample.png')}
+                        style={styles.rockieImage}
+                    />
+                    <Text style={styles.additionalText}>
+                        Rockie is your virtual companion. Grow and evolve together!
+                    </Text>
                 </View>
             </View>
         </LinearGradient>
     );
-
 }
 
 const styles = StyleSheet.create({
-    gradient: {
-        flex: 1,
-    },
-    scrollContainer: {
-        flexGrow: 1,
-        padding: 20,
-    },
-    loadingContainer: {
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-        backgroundColor: "#2A4955",
-    },
-    loadingText: {
-        color: "#FFF",
-        fontSize: 18,
-    },
+    gradient: { flex: 1 },
+    scrollContainer: { flexGrow: 1, padding: 20 },
+    loadingText: { color: "#FFF", fontSize: 18 },
     infoContainer: {
         backgroundColor: "rgba(255, 255, 255, 0.1)",
-        borderRadius: 20,
+        borderRadius: 15,
         padding: 20,
-        marginVertical: 10,
-    },
-    header: {
-        fontSize: 24,
-        color: "#E9C76E",
-        fontWeight: "bold",
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+        elevation: 5,
         marginBottom: 20,
-        textAlign: "center",
     },
-    label: {
-        color: "rgba(255, 255, 255, 0.8)",
-        fontSize: 16,
-        marginTop: 10,
-    },
-    value: {
-        color: "#FFF",
-        fontSize: 18,
-        fontWeight: "bold",
-    },
-    noRockieContainer: {
+    header: { fontSize: 24, color: "#E9C76E", fontWeight: "bold", marginBottom: 20 },
+    label: { color: "#FFF", fontSize: 16, marginTop: 10 },
+    value: { color: "#FFF", fontSize: 18, fontWeight: "bold" },
+    noRockieContainer: { alignItems: "center", justifyContent: "center", marginTop: 20 },
+    noRockieText: { color: "#FFF", fontSize: 18, marginBottom: 10 },
+    errorContainer: { backgroundColor: "rgba(255, 0, 0, 0.5)", padding: 10, borderRadius: 5, marginBottom: 10 },
+    errorText: { color: "#FFF", fontSize: 16 },
+    button: { backgroundColor: "#E9C76E", paddingVertical: 12, paddingHorizontal: 20, borderRadius: 10, alignItems: "center", marginTop: 10 },
+    buttonText: { color: "#2A4955", fontSize: 16, fontWeight: "bold" },
+    additionalContainer: {
         alignItems: "center",
-        justifyContent: "center",
         marginTop: 20,
+        padding: 20,
+        backgroundColor: "rgba(255, 255, 255, 0.1)",
+        borderRadius: 15,
     },
-    noRockieText: {
-        color: "#FFF",
-        fontSize: 18,
-        marginBottom: 10,
-    },
-    errorContainer: {
-        backgroundColor: "rgba(255, 0, 0, 0.5)",
-        padding: 10,
-        borderRadius: 5,
-        marginBottom: 10,
-    },
-    errorText: {
-        color: "#FFF",
-        fontSize: 16,
-    },
+    additionalHeader: { fontSize: 20, color: "#E9C76E", fontWeight: "bold", marginBottom: 10 },
+    rockieImage: { width: 150, height: 150, resizeMode: "contain", marginBottom: 10 },
+    additionalText: { fontSize: 16, color: "#FFF", textAlign: "center" },
 });
+
+

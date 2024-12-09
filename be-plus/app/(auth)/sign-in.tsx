@@ -46,6 +46,7 @@ export default function SignInScreen() {
                 } else {
                     Alert.alert('Error', 'No token received');
                     console.error('Error: No token in API response'); // Debugging
+                    console.error(data);
                 }
             } else {
                 Alert.alert('Error', data.message || 'Invalid credentials');
